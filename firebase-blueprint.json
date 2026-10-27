@@ -1,0 +1,276 @@
+{
+  "entities": {
+    "Organization": {
+      "title": "Organization",
+      "description": "Entidad raíz para multi-tenancy de agencias o desarrolladoras inmobiliarias.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "logoLettermark": { "type": "string", "maxLength": 10 },
+        "primaryColor": { "type": "string", "maxLength": 20 },
+        "accentColor": { "type": "string", "maxLength": 20 },
+        "contactEmail": { "type": "string", "format": "email", "maxLength": 120 },
+        "contactPhone": { "type": "string", "maxLength": 25 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "contactEmail", "createdAt", "updatedAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Perfil de usuario del CRM con rol RBAC validado.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "displayName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "emailVerified": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["admin", "sales_director", "advisor"] },
+        "phone": { "type": "string", "maxLength": 25 },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "organizationId", "displayName", "email", "role", "status", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Proyecto o desarrollo inmobiliario en cartera.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "location": { "type": "string", "maxLength": 120 },
+        "type": { "type": "string", "enum": ["residencial_lujo", "villas", "vertical", "lotes_campestres", "mixto"] },
+        "areaM2": { "type": "number" },
+        "priceFrom": { "type": "number" },
+        "priceTo": { "type": "number" },
+        "status": { "type": "string", "enum": ["preventa", "en_construccion", "entrega_inmediata", "agotado"] },
+        "galleryUrls": { "type": "array" },
+        "totalUnits": { "type": "number" },
+        "availableUnits": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "name", "location", "type", "priceFrom", "status", "createdAt"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "Inmueble, lote o unidad de inventario específico.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "code": { "type": "string", "maxLength": 50 },
+        "projectId": { "type": "string", "maxLength": 64 },
+        "projectName": { "type": "string", "maxLength": 120 },
+        "areaM2": { "type": "number" },
+        "bedrooms": { "type": "number" },
+        "bathrooms": { "type": "number" },
+        "price": { "type": "number" },
+        "status": { "type": "string", "enum": ["disponible", "reservado", "vendido", "inactivo"] },
+        "observations": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "code", "projectId", "price", "status", "createdAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Prospecto calificado en el CRM inmobiliario.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "phone": { "type": "string", "minLength": 7, "maxLength": 25 },
+        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "projectId": { "type": "string", "maxLength": 64 },
+        "projectName": { "type": "string", "maxLength": 120 },
+        "budget": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["contado", "credito_hipotecario", "fondos_propios", "mixto"] },
+        "channel": { "type": "string", "enum": ["meta_ads", "google", "referido", "portal_inmobiliario", "evento", "directo"] },
+        "advisorId": { "type": "string", "maxLength": 64 },
+        "advisorName": { "type": "string", "maxLength": 100 },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "lead_nuevo",
+            "contacto_calificacion",
+            "videollamada_agendada",
+            "videollamada_realizada",
+            "negociacion",
+            "separacion",
+            "promesa_compraventa",
+            "ganado",
+            "compra_aplazada",
+            "perdido"
+          ]
+        },
+        "qualificationScore": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "lastContactAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "fullName", "phone", "email", "stage", "createdAt", "updatedAt"]
+    },
+    "LeadActivity": {
+      "title": "LeadActivity",
+      "description": "Historial de notas, llamadas y cambios de etapa de un prospecto.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "leadId": { "type": "string", "maxLength": 64 },
+        "type": { "type": "string", "enum": ["cambio_etapa", "nota", "llamada", "reunion", "whatsapp", "documento"] },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "performedBy": { "type": "string", "maxLength": 64 },
+        "performedByName": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "leadId", "type", "title", "performedBy", "createdAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Tarea o seguimiento comercial programado.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "leadId": { "type": "string", "maxLength": 64 },
+        "leadName": { "type": "string", "maxLength": 100 },
+        "dealId": { "type": "string", "maxLength": 64 },
+        "assignedTo": { "type": "string", "maxLength": 64 },
+        "assignedName": { "type": "string", "maxLength": 100 },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "priority": { "type": "string", "enum": ["alta", "media", "baja"] },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "title", "assignedTo", "dueDate", "priority", "completed", "createdAt"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "Videollamada o cita presencial agendada con un prospecto.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "leadId": { "type": "string", "maxLength": 64 },
+        "leadName": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 150 },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "durationMinutes": { "type": "number" },
+        "link": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["agendada", "realizada", "cancelada", "no_asistio"] },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "leadId", "scheduledAt", "status", "createdAt"]
+    },
+    "Deal": {
+      "title": "Deal",
+      "description": "Oportunidad de negocio inmobiliario con valor económico asignado.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "leadId": { "type": "string", "maxLength": 64 },
+        "leadName": { "type": "string", "maxLength": 100 },
+        "projectId": { "type": "string", "maxLength": 64 },
+        "projectName": { "type": "string", "maxLength": 120 },
+        "propertyId": { "type": "string", "maxLength": 64 },
+        "propertyCode": { "type": "string", "maxLength": 50 },
+        "estimatedValue": { "type": "number" },
+        "stage": { "type": "string", "maxLength": 50 },
+        "advisorId": { "type": "string", "maxLength": 64 },
+        "advisorName": { "type": "string", "maxLength": 100 },
+        "expectedCloseDate": { "type": "string", "format": "date-time" },
+        "outcome": { "type": "string", "enum": ["en_proceso", "ganado", "perdido"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "leadId", "estimatedValue", "advisorId", "outcome", "createdAt"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Documento contractual, plano o ficha técnica almacenado en Storage.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 150 },
+        "fileUrl": { "type": "string", "maxLength": 1000 },
+        "fileType": { "type": "string", "maxLength": 50 },
+        "sizeBytes": { "type": "number" },
+        "relatedEntityType": { "type": "string", "enum": ["lead", "project", "property", "deal"] },
+        "relatedEntityId": { "type": "string", "maxLength": 64 },
+        "uploadedBy": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "name", "fileUrl", "relatedEntityType", "relatedEntityId", "uploadedBy", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Registro inmutable de auditoría para operaciones sensibles del CRM.",
+      "type": "object",
+      "properties": {
+        "organizationId": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 64 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "userRole": { "type": "string", "maxLength": 30 },
+        "action": { "type": "string", "maxLength": 80 },
+        "entityType": { "type": "string", "maxLength": 50 },
+        "entityId": { "type": "string", "maxLength": 64 },
+        "details": { "type": "string", "maxLength": 2000 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizationId", "userId", "action", "entityType", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/organizations/{orgId}": {
+      "schema": { "$ref": "#/entities/Organization" },
+      "description": "Datos de organización e identidad corporativa."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Perfiles de usuario y roles RBAC (admin, sales_director, advisor)."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Proyectos y desarrollos inmobiliarios."
+    },
+    "/properties/{propertyId}": {
+      "schema": { "$ref": "#/entities/Property" },
+      "description": "Unidades de inventario y lotes."
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Prospectos comerciales con calificación y etapa del embudo."
+    },
+    "/leadActivities/{activityId}": {
+      "schema": { "$ref": "#/entities/LeadActivity" },
+      "description": "Historial de notas, llamadas y transiciones de prospectos."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tareas y actividades de seguimiento comercial."
+    },
+    "/meetings/{meetingId}": {
+      "schema": { "$ref": "#/entities/Meeting" },
+      "description": "Videollamadas y citas agendadas."
+    },
+    "/deals/{dealId}": {
+      "schema": { "$ref": "#/entities/Deal" },
+      "description": "Negocios, separaciones y cierres de venta."
+    },
+    "/documents/{documentId}": {
+      "schema": { "$ref": "#/entities/Document" },
+      "description": "Metadatos de documentos cargados en Firebase Storage."
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Bitácora inmutable de auditoría para operaciones sensibles."
+    }
+  }
+}

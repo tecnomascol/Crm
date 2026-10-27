@@ -1,0 +1,6 @@
+{
+  "name": "AUREA Real Estate & Luxury CRM",
+  "description": "Plataforma inmobiliaria cinematográfica de lujo con catálogo de proyectos exclusivos, captación de prospectos y panel de CRM avanzado con embudo Kanban.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

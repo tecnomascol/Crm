@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Default-Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Authentication & Verification primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User lookup helper
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isMemberOf(orgId) {
+      return isEmailVerified() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && getUserDoc().organizationId == orgId;
+    }
+
+    function hasRole(role) {
+      return isEmailVerified() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && getUserDoc().role == role;
+    }
+
+    function isAdmin(orgId) {
+      return isMemberOf(orgId) && getUserDoc().role == 'admin';
+    }
+
+    function isSalesDirectorOrAdmin(orgId) {
+      return isMemberOf(orgId) && (getUserDoc().role == 'admin' || getUserDoc().role == 'sales_director');
+    }
+
+    // 1. Organizations
+    match /organizations/{orgId} {
+      allow read: if isMemberOf(orgId);
+      allow update: if isAdmin(orgId);
+      allow create: if isEmailVerified() && !exists(/databases/$(database)/documents/organizations/$(orgId));
+      allow delete: if false;
+    }
+
+    // 2. Users (RBAC)
+    match /users/{userId} {
+      allow get: if isEmailVerified() && (request.auth.uid == userId || isMemberOf(resource.data.organizationId));
+      allow list: if isEmailVerified() && isMemberOf(request.query.limit != null ? getUserDoc().organizationId : '');
+
+      // User creation: initial sign-up sets pending role
+      allow create: if isEmailVerified() && request.auth.uid == userId
+        && request.resource.data.role in ['advisor', 'pending']
+        && request.resource.data.email == request.auth.token.email;
+
+      // Only admin can promote roles or modify other users
+      allow update: if isEmailVerified() && (
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'organizationId']))
+        || isAdmin(resource.data.organizationId)
+      );
+      allow delete: if isEmailVerified() && isAdmin(resource.data.organizationId) && request.auth.uid != userId;
+    }
+
+    // 3. Projects
+    match /projects/{projectId} {
+      allow read: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create: if isSalesDirectorOrAdmin(request.resource.data.organizationId) && isValidId(projectId);
+      allow update: if isSalesDirectorOrAdmin(resource.data.organizationId);
+      allow delete: if isAdmin(resource.data.organizationId);
+    }
+
+    // 4. Properties (Inventory)
+    match /properties/{propertyId} {
+      allow read: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create, update: if isSalesDirectorOrAdmin(request.resource.data.organizationId) && isValidId(propertyId);
+      allow delete: if isAdmin(resource.data.organizationId);
+    }
+
+    // 5. Leads (Prospects)
+    match /leads/{leadId} {
+      allow get: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create: if isMemberOf(request.resource.data.organizationId) && isValidId(leadId);
+      allow update: if isMemberOf(resource.data.organizationId);
+      allow delete: if isSalesDirectorOrAdmin(resource.data.organizationId);
+    }
+
+    // 6. Lead Activities
+    match /leadActivities/{activityId} {
+      allow read: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create: if isMemberOf(request.resource.data.organizationId) && isValidId(activityId);
+      allow update, delete: if false; // Activities are immutable history
+    }
+
+    // 7. Tasks
+    match /tasks/{taskId} {
+      allow read: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create: if isMemberOf(request.resource.data.organizationId) && isValidId(taskId);
+      allow update: if isMemberOf(resource.data.organizationId);
+      allow delete: if isSalesDirectorOrAdmin(resource.data.organizationId);
+    }
+
+    // 8. Meetings
+    match /meetings/{meetingId} {
+      allow read: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create, update: if isMemberOf(request.resource.data.organizationId) && isValidId(meetingId);
+      allow delete: if isSalesDirectorOrAdmin(resource.data.organizationId);
+    }
+
+    // 9. Deals (Negocios)
+    match /deals/{dealId} {
+      allow read: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create, update: if isMemberOf(request.resource.data.organizationId) && isValidId(dealId);
+      allow delete: if isAdmin(resource.data.organizationId);
+    }
+
+    // 10. Documents
+    match /documents/{documentId} {
+      allow read: if isMemberOf(resource.data.organizationId);
+      allow list: if isEmailVerified() && resource.data.organizationId == getUserDoc().organizationId;
+      allow create: if isMemberOf(request.resource.data.organizationId) && isValidId(documentId);
+      allow update, delete: if isSalesDirectorOrAdmin(resource.data.organizationId);
+    }
+
+    // 11. Audit Logs (Immutable)
+    match /auditLogs/{logId} {
+      allow read: if isSalesDirectorOrAdmin(resource.data.organizationId);
+      allow list: if isEmailVerified() && isSalesDirectorOrAdmin(getUserDoc().organizationId);
+      allow create: if isMemberOf(request.resource.data.organizationId) && isValidId(logId);
+      allow update, delete: if false; // Audit logs can NEVER be edited or deleted
+    }
+  }
+}
